@@ -12,9 +12,6 @@ import sys
 import time
 from uuid import uuid4
 
-from pyethereum import utils
-import serpent
-
 import config as c
 config = c.read_config()
 
@@ -133,14 +130,12 @@ class Api(object):
         params = [address]
         return self._rpc_post('eth_storageAt', params)
 
-    def transact(self, dest, fun_name=None, sig='', data=None, gas=config.get("deploy", "gas"), gas_price=config.get("deploy", "gas_price"), value=0, from_=config.get("api", "address")):
+    def transact(self, dest, data='', gas=config.get("deploy", "gas"), gas_price=config.get("deploy", "gas_price"), value=0, from_=config.get("api", "address")):
         if not dest.startswith('0x'):
             dest = '0x' + dest
 
-        if fun_name is not None:
-            data_abi = serpent.encode_abi(fun_name, sig, *data).encode('hex')
-            logger.debug("ABI data: 0x%s" % data_abi)
-            data = "0x" + data_abi
+        if not data.startswith('0x'):
+            data = '0x' + data
 
         params = [{
             'to': dest,
@@ -150,13 +145,12 @@ class Api(object):
             'value': str(value)}]
         return self._rpc_post('eth_transact', params)
 
-    def call(self, dest, fun_name, sig='', data=None, gas=config.get("deploy", "gas"), gas_price=config.get("deploy", "gas_price"), value=0, from_=config.get("api", "address")):
+    def call(self, dest, data='', gas=config.get("deploy", "gas"), gas_price=config.get("deploy", "gas_price"), value=0, from_=config.get("api", "address")):
         if not dest.startswith('0x'):
             dest = '0x' + dest
 
-        data_abi = serpent.encode_abi(fun_name, sig, *data).encode('hex')
-        logger.debug("ABI data: 0x%s" % data_abi)
-        data = "0x" + data_abi
+        if not data.startswith('0x'):
+            data = '0x' + data
 
         params = [{
             'to': dest,
@@ -164,8 +158,7 @@ class Api(object):
             'gas': str(gas),
             'gasPrice': str(gas_price),
             'value': str(value)}]
-        r = self._rpc_post('eth_call', params)
-        return serpent.decode_datalist(r[2:].decode('hex'))
+        return self._rpc_post('eth_call', params)
 
     def wait_for_next_block(self, verbose=False):
         if verbose:
